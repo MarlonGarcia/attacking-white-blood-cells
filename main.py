@@ -9,17 +9,20 @@ be conducted using this same file, only changing how to call the 'atk' object
 with the desired attack method. See 'torchattacks' documentation for more
 information.
 
-This program can be run with three other python files, named 'utils.py', 
+This program can only run with other three python files, named 'utils.py', 
 with the utils functions to be used here, 'dataset.py' to load the dataset
 images from a torch DataLoader, and 'model.py' where the actual UResNet50
 model can be found. There is also a supplementary 'train.py' file, which can
 be used to conduct training of the UResNets (with 18, 34, 50, 101 or 152
-layers).
+layers). All python files are available on GitHub repository (link below)
 
 To attack your model, you need to train it on the Raabin-WBC Dataset using the
 'train.py' file, or on other dataset of your choise. This program can also be
 the basis to develop automated attacks in other models and other datasets, just
 by changing the model file to be loaded and the directories.
+
+Find more on the GitHub Repository:
+https://github.com/MarlonGarcia/attacking-white-blood-cells
 '''
 
 ### Program Header
