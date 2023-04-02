@@ -149,6 +149,14 @@ def norm255(image):
     image = image/(np.max(image)/255)
     return np.array(image, np.uint8)
 
+
+# def one_hot2label(label):
+#     output = torch.empty(label[:,0,:,:].squeeze().size())
+#     output[label[:,1,:,:]==1] = 1
+#     output[label[:,2,:,:]==1] = 2
+#     return output
+
+
 def main():
     # Iterating in 'epsilons' to accounts for different epsilon in perturbation
     for epsilon in epsilons:
@@ -158,7 +166,10 @@ def main():
         atk = torchattacks.PGD(model, eps=epsilon, alpha=2/255, steps=10)
         # Setting the mode to choose the label of attack
         atk.set_mode_targeted_by_label()
-        ## First, the attack will be focused in the 'Test Dataset'
+        # # Setting the mode to random label
+        # atk.set_mode_targeted_random()
+        
+        ## First, the attack will be focused in the Test Dataset
         # Starting the metrics with zero
         num_correct = 0
         num_pixels = 0
@@ -230,8 +241,7 @@ def main():
         dice_score_test.append(dice_item)
         print('Accuracy:', acc, ', for Epsilon:', epsilon)
         
-        ## Now, the attack will be focused in the Validation Dataset. The same
-        # comments found in the above statement, can meet the bellow iteration
+        ## Now, the attack will be focused in the Validation Dataset
         num_correct = 0
         num_pixels = 0
         dice_scores = 0
@@ -241,25 +251,38 @@ def main():
             image, label = dictionary
             # extracting the data from dictionary with keys 'image' and 'label'
             x, y = dictionary[image], dictionary[label]
+            # Casting image and label to the device
             x, y = x.to(device=device), y.to(device=device)
+            # Label has to be float type to be compared with output
             y = y.float()
+            # Making a label to attack (nomenclature: static target specificity)
             label_adv = torch.Tensor(np.ones(np.shape(y),float))
+            # Next lines normalize 'x' to be used in 'atk' as 'x1'
             min_x = x.min()
             x1 = x - min_x
             max_x = x1.max()
             x1 = x1/max_x
+            # Perturbing 'x1'
             x_adv = atk(x1, label_adv)
+            # Returnig from normalization made above
             x_adv = x_adv*max_x
             x_adv = x_adv+min_x
+            # Forward passing the adversarial example into the model
             output = model(x_adv)
+            # Center crop label to 'output' size (in case of convolut. reduct.)
             y = tf.center_crop(y, output.shape[2:])
+            # Transforming the output values in bytewise probability
             output = (output > 0.5).float()
+            # Calculating number of currected classified pixels
             num_correct += (output==y).sum()
+            # Calculating the number of pixels for statistics
             num_pixels += torch.numel(output)
+            # Next lines are to calculate dice score
             output = output.to(device='cpu').to(torch.int32)
             y = y.to(device='cpu').to(torch.int32)
             dice = Dice(ignore_index=0)
             dice_scores += dice(output,y)
+            # Saving label and perturbed label
             if save_images and i<5:
                 os.chdir(root_folder)
                 temp = y.permute(0,2,3,1).to('cpu').numpy()[0,:,:,:]
@@ -268,7 +291,8 @@ def main():
                 temp = output.permute(0,2,3,1).to('cpu').numpy()[0,:,:,:]
                 temp = norm255(temp)
                 cv2.imwrite('saved_images/Eps'+str(epsilon)+'_y_pert_valid_'+str(i)+'.png', temp)
-            
+        
+        # Acquiring  statistics
         acc = 100*num_correct.item()/num_pixels
         dice_item = 100*dice_scores.item()/len(valid_loader)
         accuracy_valid.append(acc)
@@ -294,6 +318,7 @@ def main():
             clip_valid=1.0,
             clip_train=1.0
         )
+        ## Saving oroginal and perturbed images
         # Defining names of images to be saved (important for original ones)
         names = os.listdir(save_image_dir[0])
         for i, dictionary in enumerate(save_loader):
