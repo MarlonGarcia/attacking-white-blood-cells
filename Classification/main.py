@@ -33,9 +33,7 @@ https://github.com/MarlonGarcia/attacking-white-blood-cells
 # Importing Libraries
 from tqdm import tqdm
 import torch
-import torchattacks
 import torch.nn as nn
-import torchvision.transforms.functional as tf
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
@@ -56,12 +54,16 @@ import os
 os.chdir(root_folder)
 from utils import *
 from model import ResNet50
+from absl import flags
+from cleverhans.torch.attacks.projected_gradient_descent import (
+    projected_gradient_descent
+)
 
 
 #% Defining Hyperparameters and Directories
 
 # Hyperparameters
-epsilons = [8/255, 16/255]
+epsilons = [0, 8/255, 16/255, 32/255, 64/255, 128/255]
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 batch_size = 1          # batch size
 num_workers = 2         # number of workers (smaller or = n° processing units)
@@ -147,39 +149,46 @@ def norm255(image):
     return np.array(image, np.uint8)
 
 
-def attack(model, loader, atk):
-        # Setting the model to evaluation
-        model.eval()
-        # Starting the metrics with zero
-        num_correct = 0
-        # Using 'tqdm' library to see a progress bar
-        loop = tqdm(loader, desc='Check acc')
-        for i, (dictionary, label) in enumerate(loop):
-            # Finding image from dictionary
-            image = dictionary['image0']
-            # Label has to be in 'LongTensor' type
-            label = label.type(torch.LongTensor)
-            # Casting to device
-            image, label = image.to(device), label.to(device)
-            # Normalizing to enter in 'atk' instance
-            min_val = image.min()
-            image1 = image - min_val
-            max_val = image1.max()
-            image1 = image1/max_val
-            # Calculating attack from input image and the adversarial label
-            image_adv = atk(image1, label)
-            # De-normalizing to the standard range (model only understand the
-            # standard range, with zero mean and unitary standard deviation)
-            image_adv = image_adv*max_val
-            image_adv = image_adv+min_val
-            # Forward-passing the adversarial example
-            output = model(image_adv)
-            # Summing the currect classificatios
-            num_correct += (output.argmax(1)==label).type(torch.float).sum().item()
-            # Showing accuracy in the progress bar with 4 decimals
-            loop.set_postfix(acc=str(round(100*num_correct/len(loader.dataset),4)))
-        # Returning accuracy
-        return 100*num_correct/len(loader.dataset)
+def norm255tensor(image):
+    image = image - image.min()
+    image = image/(image.max()/255)
+    return image.to(torch.uint8)
+
+
+def attack(model, loader, epsilon):
+    # Setting the model to evaluation
+    model.eval()
+    # Starting the metrics with zero
+    num_correct = 0
+    # Using 'tqdm' library to see a progress bar
+    loop = tqdm(loader, desc='Check acc')
+    for i, (dictionary, label) in enumerate(loop):
+        # Finding image from dictionary
+        image = dictionary['image0']
+        # Label has to be in 'LongTensor' type
+        label = label.type(torch.LongTensor)
+        # Casting to device
+        image, label = image.to(device), label.to(device)
+        # Normalizing to enter in 'atk' instance
+        min_val = image.min()
+        image1 = image - min_val
+        max_val = image1.max()
+        image1 = image1/max_val
+        # Calculating attack from input image
+        image_adv = projected_gradient_descent(model, image1, epsilon,
+                                               0.01, 40, np.inf)
+        # De-normalizing to the standard range (model only understand the
+        # standard range, with zero mean and unitary standard deviation)
+        image_adv = image_adv*max_val
+        image_adv = image_adv+min_val
+        # Forward-passing the adversarial example
+        output = model(image_adv)
+        # Summing the currect classificatios
+        num_correct += (output.argmax(1)==label).type(torch.float).sum().item()
+        # Showing accuracy in the progress bar with 4 decimals
+        loop.set_postfix(acc=str(round(100*num_correct/len(loader.dataset),4)))
+    # Returning accuracy
+    return 100*num_correct/len(loader.dataset)
 
 
 def label_name(label):
@@ -194,6 +203,11 @@ def label_name(label):
     return names[int(label)]
 
 
+def tensor2img(tensor):
+    # Function to convert a tensor to a printable image
+    return tensor.detach().permute(0,2,3,1).to('cpu').numpy()[0,:,:,:]
+
+
 #%%
 
 accuracy_test = []
@@ -204,86 +218,79 @@ def main():
     for epsilon in epsilons:
         # Setting the model to evaluation
         model.eval()
-        # Defining the attack to Projected Gradient Method (PGD)
-        atk = torchattacks.PGD(model, eps=epsilon, alpha=2/255, steps=10)
-        # # Setting the mode to choose the label of attack
-        # atk.set_mode_targeted_by_label()
-        # Setting the mode to random label
-        atk.set_mode_targeted_random()
         
         # First, attacking the Validation Dataset
         print('\n- Attacking the Validation Dataset...\n')
-        acc = attack(model, test_loader, atk)
+        acc = attack(model, test_loader, epsilon)
         # Saving accuracy
         accuracy_valid.append(acc)
         print('\nAccuracy:', round(acc,2), ', for Epsilon:', round(epsilon,3))
         
         # Then, attacking the Testing Dataset
         print('\n- Attacking the Testing Dataset...\n')
-        acc = attack(model, valid_loader, atk)
+        acc = attack(model, valid_loader, epsilon)
         # Saving accuracy
         accuracy_test.append(acc)
         print('\nAccuracy:', round(acc,2), ', for Epsilon:', round(epsilon,3))
         
         ## Saving oroginal and perturbed images.
-        # This images cannot be saved in the above loops, because the
-        # 'get_loaders' lose part of the image pre-processing
-        print('\n- Saving Images...\n')
-        # defining mean and standard deviation to normalization
-        mean = [0.52096, 0.51698, 0.545980]
-        std = [0.10380, 0.11190, 0.118877]
-        # Defining labels to print
-        labels = [4, 1, 1, 1, 4]
-        # Defining names of images to be saved (important for original ones)
-        names = os.listdir(save_image_dir[0])
-        for i, (name, label) in enumerate(zip(names, labels)):
-            image = cv2.imread(save_image_dir[0]+'/'+name)
-            image = torch.from_numpy(image)
-            image = image.permute(2,0,1)
-            image = image.unsqueeze(0)
-            image = tf.resize(image, (image_height, image_width))
-            image = tf.normalize(image.float(), mean=mean, std=std)
-            # Preparing label to enter 'atk'
-            temp = torch.zeros(1,5)
-            temp[0,int(label)] = 1
-            label = temp.type(torch.LongTensor).to(device)
+        os.chdir(root_folder)
+        # Loading DataLoaders
+        save_loader, _, _ = get_loaders(
+            train_image_dir=save_image_dir,
+            csv_file_train=csv_file_save,
+            valid_percent=0,
+            test_percent=0,
+            batch_size=1,
+            image_height=image_height,
+            image_width=image_width,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            val_image_dir=None,
+            csv_file_valid=None,
+            clip_valid=1.0,
+            clip_train=1.0
+        )
+        # Setting the model to evaluation
+        model.eval()
+        for i, (dictionary, label) in enumerate(save_loader):
+            # Finding image from dictionary
+            image = dictionary['image0']
+            # Label has to be in 'LongTensor' type
+            label = label.type(torch.LongTensor)
             # Casting to device
-            image = image.to(device)
+            image, label = image.to(device), label.to(device)
             # Normalizing to enter in 'atk' instance
             min_val = image.min()
             image1 = image - min_val
             max_val = image1.max()
             image1 = image1/max_val
-            if True:
-                print(model(image).size())
-                print(model(image))
-                print(label.size())
-                print(label)
-            # Calculating attack from input image and the adversarial label
-            image_adv = atk(image1, label)
+            # Calculating attack from input image
+            image_adv = projected_gradient_descent(model, image1, epsilon,
+                                                   0.01, 40, np.inf)
             # De-normalizing to the standard range (model only understand the
             # standard range, with zero mean and unitary standard deviation)
             image_adv = image_adv*max_val
             image_adv = image_adv+min_val
             # Forward-passing the adversarial example
             output = model(image_adv)
-            # Preparing image to save (in uint8)
-            image_adv = image_adv.to(torch.uint8)
-            ## Next lines are to actually save the images
-            os.chdir(root_folder)
+            
+            image = norm255tensor(image)
+            image_adv = norm255tensor(image_adv)
+            image_print = tensor2img(image)
+            image_adv_print = tensor2img(image_adv)
+                        
             im, ax = plt.subplots(1,2)
-            image = image.permute(1,2,0).to('cpu').numpy()
-            image = norm255(image)
-            ax[0].imshow(image)
+            ax[0].imshow(cv2.cvtColor(image_print,cv2.COLOR_BGR2RGB))
+            ax[0].set_title('(a) '+label_name(label.item()))
             ax[0].axis('off')
-            ax[0].set_title('(a)'+label_name(label))
-            image_adv = image_adv.permute(1,2,0).to('cpu').numpy()
-            image_adv = norm255(image_adv)
-            ax[1].imshow(image_adv)
+            ax[1].imshow(cv2.cvtColor(image_adv_print,cv2.COLOR_BGR2RGB))
+            ax[1].set_title('(b) '+label_name(output.argmax(1).item()))
             ax[1].axis('off')
-            ax[1].set_title('(b)'+label_name(output.argmax(1).item()))
+            plt.pause(0.5)
             plt.tight_layout()
-            plt.savefig('save_images/Eps'+str(epsilon)+'_image'+str(i)+'.png', bbox_inches='tight')
+            plt.savefig('save_images/Eps'+str(round(epsilon,2))+'_image'+str(i)+'.png', bbox_inches='tight')
+            plt.savefig('save_images/Eps'+str(round(epsilon,2))+'_image'+str(i)+'.svg', bbox_inches='tight')
 
 
 if __name__ == '__main__':
