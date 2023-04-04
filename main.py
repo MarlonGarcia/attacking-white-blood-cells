@@ -66,7 +66,7 @@ from model import UResNet50
 #%% Defining Hyperparameters and Directories
 
 # Hyperparameters
-epsilons = [0, .05, .1, .15, .2, .25, .3]
+epsilons = [8/255]
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 batch_size = 4          # batch size
 num_workers = 2         # number of workers (smaller or = n° processing units)
@@ -185,8 +185,11 @@ def main():
             x, y = x.to(device=device), y.to(device=device)
             # Label needs to be float for comparison with the output
             y = y.float()
-            # Choosing ones to the adversarial label (one is label of cytoplasm)
-            label_adv = torch.Tensor(np.ones(np.shape(y),float))
+            # Changing background and cytoplasm labels (is one-hot enconding)
+            label_adv = torch.Tensor(np.zeros(np.shape(y),float))
+            label_adv[:,0,:,:][y[:,1,:,:]==1] = 1
+            label_adv[:,1,:,:][y[:,2,:,:]==1] = 1
+            label_adv[:,2,:,:][y[:,0,:,:]==1] = 1
             # The next steps are to normalize the image to [0,1] (atk needs it)
             min_x = x.min()
             x1 = x - min_x
@@ -255,8 +258,11 @@ def main():
             x, y = x.to(device=device), y.to(device=device)
             # Label has to be float type to be compared with output
             y = y.float()
-            # Making a label to attack (nomenclature: static target specificity)
-            label_adv = torch.Tensor(np.ones(np.shape(y),float))
+            # Changing background and cytoplasm labels (is one-hot enconding)
+            label_adv = torch.Tensor(np.zeros(np.shape(y),float))
+            label_adv[:,0,:,:][y[:,1,:,:]==1] = 1
+            label_adv[:,1,:,:][y[:,2,:,:]==1] = 1
+            label_adv[:,2,:,:][y[:,0,:,:]==1] = 1
             # Next lines normalize 'x' to be used in 'atk' as 'x1'
             min_x = x.min()
             x1 = x - min_x
@@ -303,7 +309,7 @@ def main():
         #'save_loader' are used to save original and perturbed images. This
         # images cannot be saved in the above loops, because the 'get_loaders'
         # lose part of the image informatino due to its normalization
-        print('- Saving Images...')
+        print('- Saving Images...\n')
         # Loading the DataLoader
         save_loader, _, _ = get_loaders(
             train_image_dir=save_image_dir,
@@ -329,9 +335,11 @@ def main():
             x, y = x.to(device=device), y.to(device=device)
             # Label needs to be float
             y = y.float()
-            # Criating one adversarial label to follow (label equal to one
-            # Means the whole image is cytoplasm)
-            label_adv = torch.Tensor(np.ones(np.shape(y),float))
+            # Changing background and cytoplasm labels (is one-hot enconding)
+            label_adv = torch.Tensor(np.zeros(np.shape(y),float))
+            label_adv[:,0,:,:][y[:,1,:,:]==1] = 1
+            label_adv[:,1,:,:][y[:,2,:,:]==1] = 1
+            label_adv[:,2,:,:][y[:,0,:,:]==1] = 1
             # Next steps are to normalize x to [0,1], needed for 'atk'
             min_x = x.min()
             x1 = x - min_x
