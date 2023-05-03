@@ -23,7 +23,6 @@ https://github.com/MarlonGarcia/attacking-white-blood-cells
 
 @author: Marlon Rodrigues Garcia
 @instit: University of São Paulo
-
 """
 
 ### Program Header
@@ -36,7 +35,6 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from model import ResNet50
 import time
 # If running on Colabs, mounting drive
 run_on_colabs = False
@@ -53,6 +51,7 @@ else:
 import os
 os.chdir(root_folder)
 from utils import *
+from model import ResNet50
 
 # Defining Hyperparameters
 learning_rate = 1e-3    # learning rate
@@ -63,7 +62,7 @@ num_workers = 1         # number of workers
 clip_train = 1          # percentage to clip the train dataset (for tests)
 clip_valid = 1          # percentage to clip the valid dataset (for tests)
 valid_percent = 0.15    # use a percent. of train dataset as validation dataset
-test_percent = 0.15    # use a percent. of train dataset as test dataset
+test_percent = 0.15     # use a percent. of train dataset as test dataset
 start_save = 30         # epoch to start saving
 image_height = 300      # height to crop the image
 image_width = 300       # width to crop the image
@@ -99,6 +98,8 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr
     
     for batch_idx, (dictionary, label) in enumerate(loop):
         x, y = dictionary['image0'], label
+        # for label to be compared with prediction, as the way it outcomes from the
+        # network we need to transform it to 'LongTensor'
         y = y.type(torch.LongTensor)
         x, y = x.to(device=device), y.to(device=device)
         # Forward
