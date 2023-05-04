@@ -36,13 +36,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import time
-# If running on Colabs, mounting drive
+# if running on Colabs, mounting drive
 run_on_colabs = False
 if run_on_colabs:
-    # Importing Drive
+    # importing Drive
     from google.colab import drive
     drive.mount('/content/gdrive')
-    # To import add current folder to path (import py files):
+    # to import add current folder to path (import py files):
     import sys
     root_folder = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Classification'
     sys.path.append(root_folder)
@@ -53,7 +53,10 @@ os.chdir(root_folder)
 from utils import *
 from model import ResNet50
 
-# Defining Hyperparameters
+
+#%% Defining Parameters and Path
+
+# defining Hyperparameters
 learning_rate = 1e-3    # learning rate
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 batch_size = 16         # batch size
@@ -74,7 +77,7 @@ change_last_fc = False  # to change the last fully connected layer
 test_models = False     # 'true' to test the models saved in 'save_results_dir'
 last_epoch = 0
 
-# Defining the path to datasets
+# defining the paths to datasets
 if run_on_colabs:
     train_image_dir = ['/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin -WBC - Data Double-labeled Cropped Cells/Train2']
     val_image_dir = ['/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin -WBC - Data Double-labeled Cropped Cells/Test2']
@@ -85,6 +88,7 @@ else:
     val_image_dir = ['G:/Shared drives/Veterinary Microscope/Dataset/Raabin -WBC - Data Double-labeled Cropped Cells/Test2']
     csv_file_train =  ['G:/Shared drives/Veterinary Microscope/Dataset/Raabin -WBC - Data Double-labeled Cropped Cells/labels_train.csv']
     csv_file_valid =  ['G:/Shared drives/Veterinary Microscope/Dataset/Raabin -WBC - Data Double-labeled Cropped Cells/labels_test.csv']
+
 # directory to save the results and to test the models:
 if run_on_colabs:
     save_results_dir = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Classification'
@@ -93,6 +97,7 @@ else:
     save_results_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Classification'
     test_models_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Classification'
 
+# defining the training function
 def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr):
     loop = tqdm(loader, desc='Epoch '+str(epoch+1))
     
@@ -102,12 +107,12 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr
         # network we need to transform it to 'LongTensor'
         y = y.type(torch.LongTensor)
         x, y = x.to(device=device), y.to(device=device)
-        # Forward
+        # forward
         with torch.cuda.amp.autocast() if torch.cuda.is_available() else torch.autocast('cpu'):
             pred = model(x)
             loss = loss_fn(pred, y)
         
-        # Backward
+        # backward
         optimizer.zero_grad()
         if device == 'cuda':
             scaler.scale(loss).backward()
@@ -119,10 +124,10 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr
             loss.backward()
             optimizer.step()
 
-        #updating tgdm loop
+        # updating tqdm loop
         loop.set_postfix(loss=loss.item())
     
-    #scheduling learning rate
+    # scheduling learning rate and saving it last value
     if scaler:
         if scale >= scaler.get_scale():
             schedule.step()
@@ -135,9 +140,9 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr
 
 
 def main():
-    # Defining model and casting to device
+    # defining model and casting to device
     model = ResNet50(in_channels=3, num_classes=5).to(device)
-    # Defining the loss function
+    # defining loss function
     loss_fn = nn.CrossEntropyLoss()
     # optimizer = optim.Adam(model.parameters())
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
@@ -145,7 +150,8 @@ def main():
     schedule = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
     ## To eliminate schedule, use 'schedule=None'
     # schedule = None
-    # Loading DataLoaders
+
+    # loading dataLoaders
     train_loader, test_loader, valid_loader = get_loaders(
         train_image_dir=train_image_dir,
         csv_file_train=csv_file_train,
@@ -163,7 +169,7 @@ def main():
     )
     
     if load_model:
-        # Loading checkpoint, if 'cpu', we need to pass 'map_location'
+        # loading checkpoint, if 'cpu', we need to pass 'map_location'
         os.chdir(root_folder)
         if device == 'cuda':
             load_checkpoint(torch.load('my_checkpoint.pth.tar'), model)
@@ -173,9 +179,9 @@ def main():
         check_accuracy(valid_loader, model, loss_fn, device=device)
     
     if not load_model or continue_training:
-        # Changing folder to save dictionary
+        # changing folder to save dictionary
         os.chdir(save_results_dir)
-        # If 'continue_training = True', we load the model and continue training
+        # if 'continue_training==True', we load the model and continue training
         if continue_training:
             print('- Continue Training...\n')
             start = time.time()
@@ -203,7 +209,7 @@ def main():
         elif not continue_training:
             print('- Start Training...\n')
             start = time.time()
-            # Opening a 'loss' and 'acc' list, to save the data
+            # opening a 'loss' and 'acc' list, to save the data
             dictionary = {'acc':[], 'loss':[], 'time taken':[]}
             acc_item, loss_item = check_accuracy(valid_loader, model, loss_fn, device=device)
             dictionary['acc'].append(acc_item)
@@ -259,6 +265,7 @@ if __name__ == '__main__':
     main()
 
 
+#%% Defining Testing Function
 
 def testing_models():
         
@@ -297,5 +304,6 @@ def testing_models():
             acc, loss = check_accuracy(valid_loader, model, loss_fn, device=device)
             print('- Acc:',round(acc,3),'; loss:',round(loss,3))
 
+# running testing function if we are in main
 if (__name__ == '__main__') and (test_models == True):
     testing_models()
