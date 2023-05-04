@@ -144,11 +144,12 @@ def main():
     model = ResNet50(in_channels=3, num_classes=5).to(device)
     # defining loss function
     loss_fn = nn.CrossEntropyLoss()
-    # optimizer = optim.Adam(model.parameters())
+    # defining the optimizer (there are commented options below)
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-    # decay learning rate in a rate of 'gamma' each epoch
+    # optimizer = optim.Adam(model.parameters())
+    # decay learning rate in a rate of 'gamma' per epoch
     schedule = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
-    ## To eliminate schedule, use 'schedule=None'
+    ## To eliminate the scheduling, use 'schedule=None'
     # schedule = None
 
     # loading dataLoaders
