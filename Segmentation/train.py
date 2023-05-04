@@ -20,22 +20,10 @@ tory by chosing 'test_models' to True.
 
 
 @author: Marlon Rodrigues Garcia
-
+@instit: University of São Paulo
 """
-# # # Importing Drive
-# from google.colab import drive
-# drive.mount('/content/gdrive')
-# # To import add current folder to path (import py files):
-# import sys
-root_folder = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
-save_results_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
-root_model = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
-# directory to load models to test, normally equal to 'save_results_dir'
-test_models_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
-# root_folder = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
-# save_results_dir = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
-# root_model = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
-# sys.path.append(root_folder)
+
+### Program  Header
 
 import torch
 import os
@@ -46,9 +34,21 @@ import matplotlib.pyplot as plt
 import torchvision.transforms.functional as tf
 import numpy as np
 import pandas as pd
+import time
+# If running on Colabs, mounting drive
+run_on_colabs = False
+if run_on_colabs:
+    # Importing Drive
+    from google.colab import drive
+    drive.mount('/content/gdrive')
+    # To import add current folder to path (import py files):
+    import sys
+    root_folder = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
+    sys.path.append(root_folder)
+else:
+    root_folder = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
 from model import UResNet50
 from utils import *
-import time
 
 # Defining the Hyperparameters
 learning_rate = 1e-3    # learning rate
@@ -72,14 +72,24 @@ change_last_fc = False  # to change the last fully connected layer
 test_models = True      # true: test all the models saved in 'save_results_dir'
 last_epoch = 81         # when 'continue_train', it is the n° of the last epoch
 
-train_image_dir = ['G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Basophil',
-                   'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Eosinophil',
-                   'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Lymphocyte',
-                   'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Monocyte',
-                   'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Neutrophil']
-
+# Defining the path to datasets
+if run_on_colabs:
+    train_image_dir = ['/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Basophil',
+                    '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Eosinophil',
+                    '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Lymphocyte',
+                    '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Monocyte',
+                    '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Neutrophil']
+else:
+    train_image_dir = ['G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Basophil',
+                    'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Eosinophil',
+                    'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Lymphocyte',
+                    'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Monocyte',
+                    'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Neutrophil']
+# defining validation diretory
 val_image_dir = None
 
+
+#%% Training function
 
 def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr):
     loop = tqdm(loader, desc='Epoch '+str(epoch+1))
@@ -125,6 +135,8 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr
     
     return loss_item, last_lr
 
+
+#%% Defining 'main()' function
 
 def main():
     
@@ -301,6 +313,7 @@ if __name__ == '__main__':
     main()
 
 
+#%% Defining test function
 
 def testing_models():
         
