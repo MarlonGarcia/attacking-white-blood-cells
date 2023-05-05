@@ -27,7 +27,8 @@ Figure 2 - Example of non-perturbed and perturbed images for different values of
 
 Attacks in a UResNet50 (UNet with ResNet encoder and decoder part) segmentation model resulted in less accuracy and dice-score dropping, showing that this model is more robust for this type of attacks (Fig. 3). Fig. 4 shows original and perturbed images exemples.
 
-![Alt text](Segmentation/Images/AccSegme.png)
+<!-- ![Alt text](Segmentation/Images/AccSegme.png) -->
+<img src="Segmentation/Images/AccSegme.png" width="500" height="377">
 Figure 3 - Accuracy and Dice-Score curve, obtained for the segmentation task, for a UResNet50 model attacked in both the validation and the test data sets, for different values of ε.
 
 ![Alt text](Segmentation/Images/images.png)
