@@ -19,7 +19,9 @@ Adversarial attacks in the
 ![Alt text](Classification/Images/AccClassif.png)
 Figure 1 - Accuracies obtained for the classification model ResNet50 under attack, for the validation and the test data sets, considering different values of ε.
 
-![Alt text](Segmentation/Images/images.png)
+<!-- ![Alt text](Classification/Images/images.png) -->
+
+<img src="../Classification/Images/images.png" width="650" height="690">
 Figure 2 - Example of non-perturbed and perturbed images for different values of ε.
 
 
