@@ -31,10 +31,10 @@ https://github.com/MarlonGarcia/attacking-white-blood-cells
 colabs = False
 
 if colabs:
-    # Importing Drive
+    # importing Drive
     from google.colab import drive
     drive.mount('/content/gdrive')
-    # To import add current folder to path (import py files):
+    # to import add current folder to path (import py files):
     import sys
     root_folder = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
     save_results_dir = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
@@ -62,11 +62,10 @@ import pandas as pd
 from model import UResNet50
 
 
-
 #%% Defining Hyperparameters and Directories
 
-# Hyperparameters
-epsilons = [8/255]
+# hyperparameters
+epsilons = [8/255, 16/255, 32/255, 64/255, 128/255]
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 batch_size = 4          # batch size
 num_workers = 2         # number of workers (smaller or = n° processing units)
@@ -80,25 +79,25 @@ pin_memory = True       # choose to pin memory
 load_model = True       # 'true' to load a model and test it, or use it
 save_images = True      # 'true' to save model trained after epoches
 
-# Images' Directories for the datasets
+# images' Directories for the datasets
 if colabs:
-    # Images' Directories to be used in Colabs
+    # images' Directories to be used in Colabs
     train_image_dir = ['/content/gdrive/Shareddrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Basophil',
                         '/content/gdrive/Shareddrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Eosinophil',
                         '/content/gdrive/Shareddrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Lymphocyte',
                         '/content/gdrive/Shareddrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Monocyte',
                         '/content/gdrive/Shareddrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Neutrophil']
-    # Directory with images to save
+    # directory with images to save
     save_image_dir = ['/content/gdrive/Shareddrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/image']
 
 else:
-    # Images' Directories to be used on windows desktop
+    # images' Directories to be used on windows desktop
     train_image_dir = ['G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Basophil',
                        'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Eosinophil',
                        'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Lymphocyte',
                        'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Monocyte',
                        'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Neutrophil']
-    # Directory with images to save
+    # directory with images to save
     save_image_dir = ['G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/image']
 
 val_image_dir = None
@@ -106,12 +105,12 @@ val_image_dir = None
 
 #%% Defining Model and Loading DataLoader 
 
-# Defining the UResNet50 from 'model.py' file
+# defining the UResNet50 from 'model.py' file
 model = UResNet50(in_channels=3, num_classes=3).to(device)
 
-# Loading the Pre-trained weights for the UResNet50
+# loading the Pre-trained weights for the UResNet50
 if load_model:
-    # Loading checkpoint, if 'cpu', we need to pass 'map_location'
+    # loading checkpoint, if 'cpu', we need to pass 'map_location'
     os.chdir(root_model)
     if device == 'cuda':
         load_checkpoint(torch.load('my_checkpoint80.pth.tar'), model)
@@ -119,10 +118,10 @@ if load_model:
         load_checkpoint(torch.load('my_checkpoint80.pth.tar',
                                    map_location=torch.device('cpu')), model)
 
-# Defining the loss function to be used
+# defining the loss function to be used
 loss_fn = nn.CrossEntropyLoss()
 
-# Loading DataLoaders
+# loading DataLoaders
 _, test_loader, valid_loader = get_loaders(
     train_image_dir=train_image_dir,
     valid_percent=valid_percent,
@@ -158,34 +157,34 @@ def norm255(image):
 
 
 def main():
-    # Iterating in 'epsilons' to accounts for different epsilon in perturbation
+    # iterating in 'epsilons' to accounts for different epsilon in perturbation
     for epsilon in epsilons:
-        # Setting the model to evaluation
+        # setting the model to evaluation
         model.eval()
-        # Defining the attack to Projected Gradient Method (PGD)
+        # defining the attack to Projected Gradient Method (PGD)
         atk = torchattacks.PGD(model, eps=epsilon, alpha=2/255, steps=10)
-        # Setting the mode to choose the label of attack
+        # setting the mode to choose the label of attack
         atk.set_mode_targeted_by_label()
-        # # Setting the mode to random label
+        # # setting the mode to random label
         # atk.set_mode_targeted_random()
         
         ## First, the attack will be focused in the Test Dataset
-        # Starting the metrics with zero
+        # starting the metrics with zero
         num_correct = 0
         num_pixels = 0
         dice_scores = 0
-        # Using 'tqdm' library to see a progress bar
+        # using 'tqdm' library to see a progress bar
         loop = tqdm(test_loader)
         for i, dictionary in enumerate(loop):
-            # Finding the dictionary keys for image and label
+            # finding the dictionary keys for image and label
             image, label = dictionary
-            # Extracting the data from dictionary with keys 'image' and 'label'
+            # extracting the data from dictionary with keys 'image' and 'label'
             x, y = dictionary[image], dictionary[label]
-            # Casting the data to device
+            # casting the data to device
             x, y = x.to(device=device), y.to(device=device)
-            # Label needs to be float for comparison with the output
+            # label needs to be float for comparison with the output
             y = y.float()
-            # Changing background and cytoplasm labels (is one-hot enconding)
+            # changing background and cytoplasm labels (is one-hot enconding)
             label_adv = torch.Tensor(np.zeros(np.shape(y),float))
             label_adv[:,0,:,:][y[:,1,:,:]==1] = 1
             label_adv[:,1,:,:][y[:,2,:,:]==1] = 1
