@@ -1,3 +1,7 @@
+'''
+This file is used together with the 'train.py' file to help in the training and
+testing process with util functions.
+'''
 import torch
 from dataset import RaabinDataset
 from torch.utils.data import DataLoader, random_split
@@ -258,7 +262,6 @@ def get_loaders(train_image_dir,
     (test_dataset, _) = random_split(train_dataset, [test_dataset_size, rest_size],
                                      generator=(torch.Generator().manual_seed(40)))
     
-    
     # defining the validation dataset, using part of the 'train_dataset', or
     # using a specific dataset for validation, if 'val_image_dir' is not 'None'
     if not val_image_dir:
@@ -330,7 +333,7 @@ def get_loaders(train_image_dir,
         (test_dataset, _) = random_split(test_dataset, [valid_mini, temp_mini],
                                          generator=torch.Generator().manual_seed(50))
     
-    # Obtaining dataloader from the datasets defined above
+    # obtaining dataloader from the datasets defined above
     train_loader = DataLoader(train_dataset, batch_size=batch_size,
                               num_workers=num_workers,
                               pin_memory=pin_memory, shuffle=True)
