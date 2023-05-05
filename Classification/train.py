@@ -44,10 +44,10 @@ if run_on_colabs:
     drive.mount('/content/gdrive')
     # to import add current folder to path (import py files):
     import sys
-    root_folder = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Classification'
+    root_folder = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Classification'
     sys.path.append(root_folder)
 else:
-    root_folder = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Classification'
+    root_folder = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Classification'
 import os
 os.chdir(root_folder)
 from utils import *
@@ -60,18 +60,18 @@ from model import ResNet50
 learning_rate = 1e-3    # learning rate
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 batch_size = 16         # batch size
-num_epochs = 62         # number of epochs
+num_epochs = 60         # number of epochs
 num_workers = 1         # number of workers
 clip_train = 1          # percentage to clip the train dataset (for tests)
 clip_valid = 1          # percentage to clip the valid dataset (for tests)
 valid_percent = 0.15    # use a percent. of train dataset as validation dataset
 test_percent = 0.15     # use a percent. of train dataset as test dataset
-start_save = 30         # epoch to start saving
+start_save = 10         # epoch to start saving
 image_height = 300      # height to crop the image
 image_width = 300       # width to crop the image
 pin_memory = True
 load_model = False      # 'true' to load a model and test it, or use it
-save_model = False      # 'true' to save model trained after epoches
+save_model = True       # 'true' to save model trained after epoches
 continue_training = False   # 'true' to load and continue training a model
 change_last_fc = False  # to change the last fully connected layer
 test_models = False     # 'true' to test the models saved in 'save_results_dir'
@@ -91,11 +91,11 @@ else:
 
 # directory to save the results and to test the models:
 if run_on_colabs:
-    save_results_dir = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Classification'
-    test_models_dir = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Classification'
+    save_results_dir = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Classification'
+    test_models_dir = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Classification'
 else:
-    save_results_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Classification'
-    test_models_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Classification'
+    save_results_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Classification'
+    test_models_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Classification'
 
 # defining the training function
 def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr):

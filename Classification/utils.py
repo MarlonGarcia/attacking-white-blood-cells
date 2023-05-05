@@ -193,12 +193,12 @@ class Affine(object):
 
 # saving checkpoints
 def save_checkpoint(state, filename='my_checkpoint.pth.tar'):
-    print('- Saving Checkpoint...')
+    print('\n- Saving Checkpoint...')
     torch.save(state, filename)
 
 # loading checkpoints
 def load_checkpoint(checkpoint, model, optimizer=None):
-    print('- Loading Checkpoint...')
+    print('\n- Loading Checkpoint...')
     model.load_state_dict(checkpoint['state_dict'])
     if optimizer:
         optimizer.load_state_dict(checkpoint['optimizer'])
@@ -320,7 +320,7 @@ def get_loaders(train_image_dir,
     
     # splitting the dataset, to deminish if 'clip_valid'<1 for fast testing
     if clip_train < 1:
-        print('- Splitting Training Dataset ',clip_train*100,'%')
+        print('\n- Splitting Training Dataset ',clip_train*100,'%')
         train_mini = int(clip_train*len(train_dataset))
         temp_mini = int((1-clip_train)*len(train_dataset))
         if train_mini+temp_mini != len(train_dataset):
@@ -328,7 +328,7 @@ def get_loaders(train_image_dir,
         (train_dataset, _) = random_split(train_dataset,[train_mini, temp_mini],
                                              generator=torch.Generator().manual_seed(40))
     if clip_valid < 1:
-        print('- Splitting Validation Dataset ',clip_valid*100,'%')
+        print('\n- Splitting Validation Dataset ',clip_valid*100,'%')
         valid_mini = int(clip_valid*len(valid_dataset))
         temp_mini = int((1-clip_valid)*len(valid_dataset))
         if valid_mini+temp_mini != len(valid_dataset):

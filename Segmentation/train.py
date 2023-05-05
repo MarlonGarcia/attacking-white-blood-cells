@@ -43,10 +43,10 @@ if run_on_colabs:
     drive.mount('/content/gdrive')
     # To import add current folder to path (import py files):
     import sys
-    root_folder = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
+    root_folder = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Segmentation'
     sys.path.append(root_folder)
 else:
-    root_folder = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
+    root_folder = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Segmentation'
 from model import UResNet50
 from utils import *
 
@@ -60,17 +60,17 @@ clip_train = 1.00       # percentage to clip the train dataset (for tests)
 clip_valid = 1.00       # percentage to clip the valid dataset (for tests)
 valid_percent = 0.15    # use a percent of train dataset as validation dataset
 test_percent = 0.15     # a percent from training dataset (but do not excluded)
-start_save = 20          # epoch to start saving
+start_save = 20         # epoch to start saving
 image_height = 224      # height to crop the image
 image_width = 224       # width to crop the image
 pin_memory = True
-load_model = True       # 'true' to load a model and test it, or use it
+load_model = False      # 'true' to load a model and test it, or use it
 save_model = True       # 'true' to save model trained after epoches
-continue_train = True   # 'true' to load and continue training a model
+continue_train = False  # 'true' to load and continue training a model
 save_images = True      # saving example from predicted and original
 change_last_fc = False  # to change the last fully connected layer
-test_models = True      # true: test all the models saved in 'save_results_dir'
-last_epoch = 81         # when 'continue_train', it is the n° of the last epoch
+test_models = False     # true: test all the models saved in 'save_results_dir'
+last_epoch = 0          # when 'continue_train', it is the n° of the last epoch
 
 # Defining the path to datasets
 if run_on_colabs:
@@ -182,7 +182,7 @@ def main():
         os.chdir(save_results_dir)
         # If 'continue_train = True', we load the model and continue training
         if continue_train:
-            print('- Continue Training...\n')
+            print('\n- Continue Training...\n')
             start = time.time()
             if device == 'cuda':
                 load_checkpoint(torch.load('my_checkpoint.pth.tar'), model,
@@ -207,11 +207,11 @@ def main():
             last_time = time_item
             # if change the last fully-connected layer:
             if change_last_fc == True:
-                print('- Change last fully-connected layer')
+                print('\n- Change last fully-connected layer')
                 model.fc = nn.Linear(21, 5)
                 model.cuda()
         elif not continue_train:
-            print('- Start Training...\n')
+            print('\n- Start Training...\n')
             start = time.time()
             # Opening a 'loss' and 'acc' list, to save the data
             dictionary = {'acc-valid':[], 'acc-test':[], 'loss':[], 'dice score-valid':[], 'dice score-test':[], 'time taken':[]}
@@ -270,6 +270,10 @@ def main():
             dictionary['time taken'].append((stop-start)/60+last_time)
             # print some examples to folder
             if save_images:
+                # criating directory, if it does not exist
+                os.chdir(root_folder)
+                try: os.mkdir('saved_images')
+                except: pass
                 save_predictions_as_imgs(
                     valid_loader, model, folder=os.path.join(root_folder,'saved_images'),
                     device=device
@@ -281,8 +285,8 @@ def main():
                                                          'dice score-test', 'time taken'])
                 df.to_csv('dictionary.csv', index = False)
                         
-            print('- Time taken:',round((stop-start)/60+last_time,3),'min')
-            print('- Last Learning rate:', round(last_lr[0],8),'\n\n')
+            print('\n- Time taken:',round((stop-start)/60+last_time,3),'min')
+            print('\n- Last Learning rate:', round(last_lr[0],8),'\n\n')
             # Deliting variables
             del dice_score_test, dice_score_valid, acc_item_test, acc_item_valid, loss_item, stop
             try: del checkpoint

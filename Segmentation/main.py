@@ -1,28 +1,47 @@
 # -*- coding: utf-8 -*-
 '''
-Adversarial Attack on a UResNet50 Neural Network
+Adversarial Attack on Segmentation Models (UResNets)
 
-This program uses Torchattacks library to attack a pre-trained model of 97%
-accuracy in segmenting cytoplasm and nuclei in white-blood cells on stained
-blood slides. Using the torchattacks library, a diverse range of attacks can
-be conducted using this same file, only changing how to call the 'atk' object
-with the desired attack method. See 'torchattacks' documentation for more
-information.
+This program is intended to be a general tool for training any segmentation
+model and test its robustness with any attack strategy. To approach other 
+models just changes the 'model.py' file, or load the desired model in the va-
+riable 'model'. And to change the attack, just change the attack class 'atk'
+with the desired attack strategy (the hint is to use Cleverhans or Torchattacks
+libraries).
 
-This program can only run with other three python files, named 'utils.py', 
-with the utils functions to be used here, 'dataset.py' to load the dataset
-images from a torch DataLoader, and 'model.py' where the actual UResNet50
-model can be found. There is also a supplementary 'train.py' file, which can
-be used to conduct training of the UResNets (with 18, 34, 50, 101 or 152
-layers). All python files are available on GitHub repository (link below)
+This algorithm uses Torchattacks library to attack a pre-trained model of 97%
+accuracy in the segmentation of cytoplasm and nuclei regions in white-blood
+cells (WBC) from blood stained slides. Using the Torchattacks library, a
+diverse range of attacks can be conducted using this same algorithm, only by 
+changing the class called at the 'atk' object to the desired attack method.
+See Torchattacks documentation for more information.
 
-To attack your model, you need to train it on the Raabin-WBC Dataset using the
-'train.py' file, or on other dataset of your choise. This program can also be
-the basis to develop automated attacks in other models and other datasets, just
-by changing the model file to be loaded and the directories.
+This program can only run with other three python files (utils.py, model.py and
+dataset.py), and with a trained model, which can be trained using the train.py
+file. It is interesting to train the model with the same dataset used in the
+attacks. Thus, specify the path for this dataset in the list variables in this
+algorithm, e.g. 'train_image_dir' (this is the same name used in train.py for
+training). All python files are available on GitHub repository (link below).
+
+- 'utils.py': used to define util functions both for attacking and training.
+- 'dataset.py': to load images in the DataLoader class of Torch.
+- 'model.py': defined the model itself (it can be changed to any desired model)
+which in this case can be either ResNets with 18, 34, 50, 101, and 152 layers.
+- 'train.py': algorithm that can be used for training any model described in
+'model.py'
+
+To attack your mode in the white-blood cells problem, you need to train it on
+WBC datasets, like the Raabin-WBC Dataset (used here), using the 'train.py'
+file, or on other dataset of your choise.
+
+P.S.: the cell with main function has to be executed separately in the python
+console (copy and paste this cell in the console separately)
 
 Find more on the GitHub Repository:
 https://github.com/MarlonGarcia/attacking-white-blood-cells
+
+@author: Marlon Rodrigues Garcia
+@instit: University of São Paulo
 '''
 
 ### Program Header
@@ -37,15 +56,13 @@ if colabs:
     # to import add current folder to path (import py files):
     import sys
     root_folder = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
-    save_results_dir = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
     root_model = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Camera & Image/Microscópio Veterinário/Atuais/ResNet em U/saved_models/UResNet50 - Adam batch 8 lr standard Adam'
     sys.path.append(root_folder)
 else:
     root_folder = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
-    save_results_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/Segmentation'
     root_model = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Camera & Image/Microscópio Veterinário/Atuais/ResNet em U/saved_models/UResNet50 - Adam batch 8 lr standard Adam'
 
-# Importing Libraries
+# importing Libraries
 import os
 os.chdir(root_folder)
 from utils import *
@@ -323,7 +340,10 @@ def main():
             clip_valid=1.0,
             clip_train=1.0
         )
-        ## Saving oroginal and perturbed images
+        # creating directory to save results
+        os.chdir(root_folder)
+        try: os.mkdir('save_images')
+        except: pass
         # Defining names of images to be saved (important for original ones)
         names = os.listdir(save_image_dir[0])
         for i, dictionary in enumerate(save_loader):
