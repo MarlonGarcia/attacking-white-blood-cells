@@ -16,7 +16,7 @@ To attack your model, you need to train it on the Raabin-WBC Dataset using the '
 Attacks performed in a ResNet50 classification model trained to detect types of white blood cells showed accuracy dropping for epsilons greater than 0.1, as we can see by Fig. 1. Examples of original and perturbed images can be seen in Fig. 2.
 
 <!-- ![Alt text](Classification/Images/AccClassif.png) -->
-<img src="Classification/Images/AccClassif.png" width="650" height="690">
+<img src="Classification/Images/AccClassif.png" width="481" height="650">
 Figure 1 - Accuracies obtained for the classification model ResNet50 under attack, for the validation and the test data sets, considering different values of ε.
 
 ![Alt text](Classification/Images/images.png)
