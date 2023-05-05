@@ -2,16 +2,16 @@
 '''
 Adversarial Attack on a UResNet50 Neural Network
 
-This program uses Torchattacks library to attack a pre-trained model of 97%
-accuracy in segmenting cytoplasm and nuclei in white-blood cells on stained
-blood slides. Using the torchattacks library, a diverse range of attacks can
-be conducted using this same file, only changing how to call the 'atk' object
-with the desired attack method. See 'torchattacks' documentation for more
+This program uses Cleverhans library to attack a pre-trained model of 99.29%
+accuracy in the classification of the white-blood cell types on blood stained
+slides. Using the Cleverhans library, a diverse range of attacks can be
+conducted using this same file, only changing the class called at the 'atk'
+object to the desired attack method. See Cleverhans documentation for more
 information.
 
 This program can only run with other three python files, named 'utils.py', 
 with the utils functions to be used here, 'dataset.py' to load the dataset
-images from a torch DataLoader, and 'model.py' where the actual UResNet50
+images from a torch DataLoader, and 'model.py' where the actual ResNet50
 model can be found. There is also a supplementary 'train.py' file, which can
 be used to conduct training of the UResNets (with 18, 34, 50, 101 or 152
 layers). All python files are available on GitHub repository (link below)
