@@ -1,6 +1,6 @@
 # Attacking White-Blood-Cells
 
-## Routine to perform adversarial attacks in a UResNet50 for White-Blood-Cells segmentation
+## Routine to Perform Adversarial Attacks in Classification and Segmentation Models for White-Blood-Cells
 
 These routines use Torchattacks and Cleverhans libraries to attack classification and segmentation pre-trained models with accuracies of 99.29% and 97% in the classification of white blood cells (WBC) and in the segmentation of their cytoplasm and nuclei, respectively, on the blood stained slides images from Raabin-WBC Datasets. In these cases we used the PGD method (Projected Gradient Descent) in a white box attack, but a diverse range of attacks can be conduced using these same files, only changing the function called at the 'atk' object to the desired attack method. See Torchattacks and Cleverhans documentation for more information.
 
