@@ -2,7 +2,7 @@
 
 ## Routine to perform adversarial attacks in a UResNet50 for White-Blood-Cells segmentation
 
-This routines use Torchattacks and Cleverhans libraries to attack classification and segmentation pre-trained models of 99.29% in the classification of white blood cells (WBC) and 97% accuracy in the segmentation of cytoplasm and nuclei in WBC, respectively, on blood stained slides. In this case we used the PGD method (Projected Gradient Descent), but a diverse range of attacks can be conduced using this same file, only changing the function called at the 'atk' object with the desired attack method. See Torchattacks and Cleverhans documentation for more information.
+This routines use Torchattacks and Cleverhans libraries to attack classification and segmentation pre-trained models with accuracies of 99.29% and 97% in the classification of white blood cells (WBC) and in the segmentation of cytoplasm and nuclei in WBC, respectively, on blood stained slides. In this case we used the PGD method (Projected Gradient Descent), but a diverse range of attacks can be conduced using this same file, only changing the function called at the 'atk' object with the desired attack method. See Torchattacks and Cleverhans documentation for more information.
 
 The 'main.py' file can only run with other three python files, named 'utils.py', with the utils functions to be used here, 'dataset.py' to load the dataset images from a torch DataLoader, and 'model.py' where the actual UResNet50 model can be found. There is also a supplementary 'train.py' file, which can be used to conduct training of the UResNets (with 18, 34, 50, 101 or 152 layers).
 
