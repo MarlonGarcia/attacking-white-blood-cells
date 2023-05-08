@@ -2,11 +2,9 @@
 
 ## Routine to perform adversarial attacks in a UResNet50 for White-Blood-Cells segmentation
 
-This routines use Torchattacks and Cleverhans libraries to attack classification and segmentation pre-trained models with accuracies of 99.29% and 97% in the classification of white blood cells (WBC) and in the segmentation of cytoplasm and nuclei in WBC, respectively, on blood stained slides. In this case we used the PGD method (Projected Gradient Descent), but a diverse range of attacks can be conduced using this same file, only changing the function called at the 'atk' object with the desired attack method. See Torchattacks and Cleverhans documentation for more information.
+These routines use Torchattacks and Cleverhans libraries to attack classification and segmentation pre-trained models with accuracies of 99.29% and 97% in the classification of white blood cells (WBC) and in the segmentation of their cytoplasm and nuclei, respectively, on the blood stained slides images from Raabin-WBC Datasets. In these cases we used the PGD method (Projected Gradient Descent) in a white box attack, but a diverse range of attacks can be conduced using these same files, only changing the function called at the 'atk' object to the desired attack method. See Torchattacks and Cleverhans documentation for more information.
 
-The 'main.py' file can only run with other three python files, named 'utils.py', with the utils functions to be used here, 'dataset.py' to load the dataset images from a torch DataLoader, and 'model.py' where the actual UResNet50 model can be found. There is also a supplementary 'train.py' file, which can be used to conduct training of the UResNets (with 18, 34, 50, 101 or 152 layers).
-
-To attack your model, you need to train it on the Raabin-WBC Dataset using the 'train.py' file, or on other dataset of your choise. This program can also be the basis to develop automated attacks in other models and other datasets, just by changing the model file to be loaded and the directories.
+The 'main.py' file can only run with other three python files, named 'utils.py', with the utils functions to be used, 'dataset.py' to load the dataset images to a torch DataLoader, and 'model.py' where acctualy the model is. There is also a supplementary 'train.py' file, which can be used to conduct the training of the model described in 'model.py'. Any other model or dataset can be implemented using the same files ('train.py' and 'utils.py'), just changing the 'model' method in 'train.py' to the desired method (e.g. imported from torchvision.models), and the 'dataset.py' file to load the desired dataset (for both offline or online datasets).
 
 
 ## Results from Classification Attacks
