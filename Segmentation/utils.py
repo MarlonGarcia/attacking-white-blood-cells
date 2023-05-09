@@ -195,12 +195,12 @@ class Affine(object):
 
 # saving checkpoints
 def save_checkpoint(state, filename='my_checkpoint.pth.tar'):
-    print('- Saving Checkpoint...')
+    print('\n- Saving Checkpoint...')
     torch.save(state, filename)
 
 # loading checkpoints
 def load_checkpoint(checkpoint, model, optimizer=None):
-    print('- Loading Checkpoint...')
+    print('\n- Loading Checkpoint...')
     model.load_state_dict(checkpoint['state_dict'])
     if optimizer:
         optimizer.load_state_dict(checkpoint['optimizer'])
@@ -223,7 +223,8 @@ def get_loaders(train_image_dir,
                                  Resize(size=[image_height, image_width]),
                                  FlipVertical(p=0.5),
                                  FlipHorizontal(p=0.5),
-                                 # Mean and std, obtained from the dataset
+                                 # mean and std, obtained from RaabinDataset
+                                 # for segmentation
                                  Normalize(n=1, mean=[0.52096, 0.51698, 0.545980],
                                            std=[0.10380, 0.11190, 0.118877])]
                                 )
@@ -232,21 +233,24 @@ def get_loaders(train_image_dir,
                                  Resize(size=[image_height, image_width]),
                                  FlipVertical(p=0.5),
                                  FlipHorizontal(p=0.5),
-                                 # Mean and std, obtained from the dataset
+                                 # defining again if validation dataset is dif.
                                  Normalize(n=1, mean=[0.52096, 0.51698, 0.545980],
                                            std=[0.10380, 0.11190, 0.118877])]
                                 )
     
-    # second, defining the number of transformations per directory in 'train_image_dir'
+    # second, defining the number of transformations per directory in
+    # 'train_image_dir' defines the data augmantation (1 for no augmentation
+    # and 5 for 5 times augmentation)
     transformations_per_dataset = [1, 1, 1, 1, 1, 1, 1]
     
     # third, reading the dataset in a as a 'torch.utils.data.Dataset' instance.
-    # it is only for images in 'train_image_dir[0]', next we accounts for the rest
+    # it is only for images in 'train_image_dir[0]', further we will accounts
+    # for the rest of the directories
     train_dataset = RaabinDataset(image_dir=train_image_dir[0],
                                   transform=transform_train_0)
     
     # concatenate the other directories in 'train_image_dir[:]' in a larger
-    # 'torhc.utils.data.Dataset'. after we concatenate more to augment the data
+    # 'torhc.utils.data.Dataset'. after we will concatenate more for augmentat.
     for n in range(1, len(train_image_dir)):
         dataset_train_temp = RaabinDataset(image_dir=train_image_dir[n],
                                            transform=transform_train_0)
@@ -315,7 +319,7 @@ def get_loaders(train_image_dir,
     
     # splitting the dataset, to deminish if 'clip_valid'<1 for fast testing
     if clip_train < 1:
-        print('- Splitting Training Dataset ',clip_train*100,'%')
+        print('\n- Splitting Training Dataset ',clip_train*100,'%')
         train_mini = int(clip_train*len(train_dataset))
         temp_mini = int((1-clip_train)*len(train_dataset))
         if train_mini+temp_mini != len(train_dataset):
@@ -323,7 +327,7 @@ def get_loaders(train_image_dir,
         (train_dataset, _) = random_split(train_dataset,[train_mini, temp_mini],
                                           generator=torch.Generator().manual_seed(40))
     if clip_valid < 1:
-        print('- Splitting Validation Dataset ',clip_valid*100,'%')
+        print('\n- Splitting Validation Dataset ',clip_valid*100,'%')
         valid_mini = int(clip_valid*len(valid_dataset))
         temp_mini = int((1-clip_valid)*len(valid_dataset))
         if valid_mini+temp_mini != len(valid_dataset):

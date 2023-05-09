@@ -223,7 +223,8 @@ def get_loaders(train_image_dir,
                                  Resize(size=[image_height, image_width]),
                                  FlipVertical(p=0.5),
                                  FlipHorizontal(p=0.5),
-                                 # RaabinDataset for classifi (train dataset):
+                                 # mean and std obtained from RaabinDataset 
+                                 # for classification (train dataset):
                                  Normalize(n=1, mean=[0.6547, 0.5921, 0.5816],
                                            std=[0.10992, 0.12602, 0.04328])]
                                 )
@@ -232,22 +233,25 @@ def get_loaders(train_image_dir,
                                  Resize(size=[image_height, image_width]),
                                  FlipVertical(p=0.5),
                                  FlipHorizontal(p=0.5),
-                                 # RaabinDataset for classifi (valid dataset):
+                                 # defining again if validation dataset is dif.
                                  Normalize(n=1, mean=[0.4969, 0.29839, 0.49723],
                                            std=[0.10984, 0.14822, 0.043955])]
                                 )
     
-    # second, defining the number of transformations per directory in 'train_image_dir'
+    # second, defining the number of transformations per directory in
+    # 'train_image_dir' defines the data augmantation (1 for no augmentation
+    # and 5 for 5 times augmentation)
     transformations_per_dataset = [1, 1, 1, 1, 1, 1, 1]
     
     # third, reading the dataset in a as a 'torch.utils.data.Dataset' instance.
-    # it is only for images in 'train_image_dir[0]', next we accounts for the rest
+    # it is only for images in 'train_image_dir[0]', further we will accounts
+    # for the rest of the directories
     train_dataset = RaabinDataset(image_dir=train_image_dir[0],
                                   csv_file=csv_file_train[0],
                                   transform=transform_train_0)
     
     # concatenate the other directories in 'train_image_dir[:]' in a larger
-    # 'torhc.utils.data.Dataset'. after we concatenate more to augment the data
+    # 'torhc.utils.data.Dataset'. after we will concatenate more for augmentat.
     for n in range(1, len(train_image_dir)):
         dataset_train_temp = RaabinDataset(image_dir=train_image_dir[n],
                                            csv_file=csv_file_train[n],
@@ -352,11 +356,14 @@ def get_loaders(train_image_dir,
     return train_loader, test_loader, valid_loader
 
 # defining function to check the accuracy
-def check_accuracy(loader, model, loss_fn, device='cuda' if torch.cuda.is_available() else 'cpu'):
+def check_accuracy(loader, model, loss_fn, device='cuda' if torch.cuda.is_available() else 'cpu', **kwargs):
     num_correct = 0
     model.eval()
-    
-    loop = tqdm(loader, desc='Check acc')
+    # if title is passed, use it before 'Check acc' and 'Got an accuracy...'
+    title = kwargs.get('title')
+    if title==None: title = ''
+    else: title = title+': '
+    loop = tqdm(loader, desc=title+'Check acc')
     
     with torch.no_grad():
         for dictionary, label in loop:
@@ -368,9 +375,12 @@ def check_accuracy(loader, model, loss_fn, device='cuda' if torch.cuda.is_availa
             loss = loss_fn(pred, y)
             num_correct += (pred.argmax(1)==y).type(torch.float).sum().item()
             loop.set_postfix(acc=str(round(100*num_correct/len(loader.dataset),4)))
+            # deleting variables to freeing space
+            loss_item = loss.item()
+            del loss, pred, x, y, label, dictionary
     
     print(f'\nGot an accuracy of {round(100*num_correct/len(loader.dataset),4)}')
     # model is training when entering this function.
     model.train()
     
-    return 100*num_correct/len(loader.dataset), loss.item()*100
+    return 100*num_correct/len(loader.dataset), loss_item

@@ -3,9 +3,9 @@
 Program to Train, Save and Continue Training of ANN Models
 
 This program is capable of training and saving models, also continue a training
-from last epoch (use hyperparameter 'last_epoch' and 'continue_train=True', and
-'load_model=True'), and to save resulting images (when used to images, bur it
-is general porpouse), using 'save_images=True'.
+from last epoch (use hyperparameter 'last_epoch' and 'continue_training=True',
+and 'load_model=True'), and to save resulting images (when used to images, bur
+it is general porpouse), using 'save_images=True'.
                                                   
 This program suports the optional use of a validation dataset, which directory
 has to be passed through 'val_image_dir'. If this variable is 'None', then test
@@ -13,10 +13,23 @@ and validation datasets is splitted from train dataset using 'valid_percent'
 and 'test_percent'. The test dataset is always clipped from the training data-
 set.
 
-In the case of fully-connected layers in the and, you can chose to change the
-last fully-connected layer, adding one extra, just changing 'change_last_fc' to
-True. It is also possible to test all saved models in the 'root_folder' direc-
-tory by chosing 'test_models' to True.
+Transfer Learning: In the case fully-connected layers are used, and you are
+using a pre-traiend model, and want to add an extra fully-connected layer for
+transfer learning, you can perform it by changing the 'change_last_fc' variable
+to 'True'.
+
+When just testing model(s), we just change 'laod_model' to 'True', and run the
+program with the variable 'test_models_dir' assigned with the directories where
+the models to be tested are.
+
+When using 'continue_training = True' in the hyperparameters, you will continue
+the training of a model. In order to that, the last epoch has to be stated in
+'last_epoch' variable, and the name of the pre-trained model has to be exactly
+'my_checkpoint.pth.tar'. The variable 'laod_model' does not need to be 'True'.
+
+For a normal traning from a non-trained model (from first epoch), we use the
+default values of 'continue_training = False' and 'change_last_fc = False'. In
+this case if 'load_model = True', the models will be tested afther last epoch.
 
 Find more on the GitHub Repository:
 https://github.com/MarlonGarcia/attacking-white-blood-cells
@@ -28,7 +41,6 @@ https://github.com/MarlonGarcia/attacking-white-blood-cells
 ### Program Header
 
 import torch
-import os
 from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
@@ -51,31 +63,31 @@ else:
 import os
 os.chdir(root_folder)
 from utils import *
-from model import ResNet50
+from model import ResNet18
 
 
 #%% Defining Parameters and Path
 
-# defining Hyperparameters
+# defining hyperparameters
 learning_rate = 1e-3    # learning rate
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-batch_size = 16         # batch size
+batch_size = 8          # batch size
 num_epochs = 60         # number of epochs
-num_workers = 1         # number of workers
-clip_train = 1          # percentage to clip the train dataset (for tests)
-clip_valid = 1          # percentage to clip the valid dataset (for tests)
+num_workers = 3         # number of workers
+clip_train = 0.5        # percentage to clip the train dataset (for tests)
+clip_valid = 0.5        # percentage to clip the valid dataset (for tests)
 valid_percent = 0.15    # use a percent. of train dataset as validation dataset
 test_percent = 0.15     # use a percent. of train dataset as test dataset
-start_save = 10         # epoch to start saving
+start_save = 2          # epoch to start saving
 image_height = 300      # height to crop the image
 image_width = 300       # width to crop the image
 pin_memory = True
 load_model = False      # 'true' to load a model and test it, or use it
 save_model = True       # 'true' to save model trained after epoches
-continue_training = False   # 'true' to load and continue training a model
+continue_training = False # 'true' to load and continue training a model
 change_last_fc = False  # to change the last fully connected layer
 test_models = False     # 'true' to test the models saved in 'save_results_dir'
-last_epoch = 0
+last_epoch = 0          # when 'continue_training', it has to be the last epoch
 
 # defining the paths to datasets
 if run_on_colabs:
@@ -97,19 +109,21 @@ else:
     save_results_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Classification'
     test_models_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Classification'
 
+#%% Training Function
+
 # defining the training function
 def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr):
     loop = tqdm(loader, desc='Epoch '+str(epoch+1))
     
     for batch_idx, (dictionary, label) in enumerate(loop):
         x, y = dictionary['image0'], label
-        # for label to be compared with prediction, as the way it outcomes from the
-        # network we need to transform it to 'LongTensor'
+        # transform label to 'LongTensor' for comparison with prediction
         y = y.type(torch.LongTensor)
         x, y = x.to(device=device), y.to(device=device)
         # forward
         with torch.cuda.amp.autocast() if torch.cuda.is_available() else torch.autocast('cpu'):
             pred = model(x)
+            # calculating loss
             loss = loss_fn(pred, y)
         
         # backward
@@ -119,15 +133,18 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr
             scaler.step(optimizer)
             scale = scaler.get_scale()
             scaler.update()
+        # if device='cpu', we cannot use 'scaler=torch.cuda.amp.GradScaler()':
         else:
-            # if device='cpu', we cannot use 'scaler=torch.cuda.amp.GradScaler()'
             loss.backward()
             optimizer.step()
-
+        # freeing space by deleting variables
+        loss_item = loss.item()
+        del loss, pred, y, x, label, dictionary
         # updating tqdm loop
-        loop.set_postfix(loss=loss.item())
-    
-    # scheduling learning rate and saving it last value
+        loop.set_postfix(loss=loss_item)
+    # deliting loader and loop
+    del loader, loop
+    # scheduling the learning rate and saving its last value
     if scaler:
         if scale >= scaler.get_scale():
             schedule.step()
@@ -136,20 +153,22 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr
         schedule.step()
         last_lr = schedule.get_last_lr()
     
-    return loss.item()*100, last_lr
+    return loss_item, last_lr
 
+
+#%% Defining The main() Function
 
 def main():
-    # defining model and casting to device
-    model = ResNet50(in_channels=3, num_classes=5).to(device)
+    # defining the model and casting to device
+    model = ResNet18(in_channels=3, num_classes=5).to(device)
     # defining loss function
     loss_fn = nn.CrossEntropyLoss()
-    # defining the optimizer (there are commented options below)
+    # defining the optimizer (there are options commented below)
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     # optimizer = optim.Adam(model.parameters())
-    # decay learning rate in a rate of 'gamma' per epoch
+    # decay learning rate by a rate of 'gamma' per epoch
     schedule = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
-    ## To eliminate the scheduling, use 'schedule=None'
+    # if schedule is not used, please refer it as 'None'
     # schedule = None
 
     # loading dataLoaders
@@ -169,11 +188,13 @@ def main():
         clip_train=clip_train
     )
     
+    # if this program is just to load and test a model, next it loads a model
     if load_model:
-        # loading checkpoint, if 'cpu', we need to pass 'map_location'
+        # loading checkpoint
         os.chdir(root_folder)
         if device == 'cuda':
             load_checkpoint(torch.load('my_checkpoint.pth.tar'), model)
+        # if 'cpu', we need to pass 'map_location'
         else:
             load_checkpoint(torch.load('my_checkpoint.pth.tar',
                                        map_location=torch.device('cpu')), model)
@@ -184,7 +205,7 @@ def main():
         os.chdir(save_results_dir)
         # if 'continue_training==True', we load the model and continue training
         if continue_training:
-            print('- Continue Training...\n')
+            print('\n- Continue Training...\n')
             start = time.time()
             if device == 'cuda':
                 load_checkpoint(torch.load('my_checkpoint.pth.tar'), model,
@@ -197,69 +218,104 @@ def main():
             df = pd.read_csv('dictionary.csv')
             temp = df.to_dict('split')
             temp = temp['data']
-            dictionary = {'acc':[], 'loss':[], 'time taken':[]}
-            for acc, loss, time_item in temp:
-                dictionary['acc'].append(acc)
+            dictionary = {'acc-valid':[], 'acc-test':[], 'loss':[], 'time taken':[]}
+            for acc_valid, acc_test, loss, time_item in temp:
+                dictionary['acc-valid'].append(acc_valid)
+                dictionary['acc-test'].append(acc_test)
                 dictionary['loss'].append(loss)
                 dictionary['time taken'].append(time_item)
+            # adding a last time to continue conting from here
+            last_time = time_item
             # if change the last fully-connected layer:
             if change_last_fc == True:
-                print('yess changes')
+                print('\n- Changing last fully-connected layer')
                 model.fc = nn.Linear(21, 5)
                 model.cuda()
+        # if it is the first epoch
         elif not continue_training:
-            print('- Start Training...\n')
+            print('\n- Start Training...\n')
             start = time.time()
             # opening a 'loss' and 'acc' list, to save the data
-            dictionary = {'acc':[], 'loss':[], 'time taken':[]}
-            acc_item, loss_item = check_accuracy(valid_loader, model, loss_fn, device=device)
-            dictionary['acc'].append(acc_item)
+            dictionary = {'acc-valid':[], 'acc-test':[], 'loss':[], 'time taken':[]}
+            acc_item_valid, loss_item = check_accuracy(valid_loader, model, loss_fn, device=device, title='Validating')
+            acc_item_test, _ = check_accuracy(test_loader, model, loss_fn, device=device, title='Testing')
+            dictionary['acc-valid'].append(acc_item_valid)
+            dictionary['acc-test'].append(acc_item_test)
             dictionary['loss'].append(loss_item)
-            dictionary['time taken'].append((time.time()-start)/60)
+            # we added last_time here to sum it to the 'time taken' in the
+            # dictionary. it is done because if training is continued, we can
+            # sum the actual 'last_time' taken in previous training.
+            last_time = (time.time()-start)/60
+            dictionary['time taken'].append(last_time)
         
+        # with 'cpu' we can't use 'torch.cuda.amp.GradScaler()'
         if device == 'cuda':
             scaler = torch.cuda.amp.GradScaler()
         else:
-            # with 'cpu' we can't use cuda.amp.GradScaler(), we only use autograd
             scaler = None
-        
         # to use 'last_lr' in 'train_fn', we have to define it first
         last_lr = schedule.get_last_lr()
+        # begining image printing
+        fig, ax = plt.subplots()
+        # Criating a new start time (we have to sum this to 'last_time')
+        start = time.time()
         
-        # running epochs for
-        for epoch in range(num_epochs):
+        # running epochs
+        for epoch in range(last_epoch, num_epochs):
+            # calling training function
             loss_item, last_lr = train_fn(train_loader, model, optimizer,
                                           loss_fn, scaler, schedule, epoch,
                                           last_lr)
-            
+            # appending resulted loss from training
             dictionary['loss'].append(loss_item)
-            # save model
-            if save_model and epoch >= start_save:
+            # saving model
+            if save_model and epoch >= start_save -1:
+                # changing folder to save dictionary
+                os.chdir(save_results_dir)
                 checkpoint = {
                     'state_dict': model.state_dict(),
                     'optimizer': optimizer.state_dict(),
                 }
-                save_checkpoint(checkpoint, filename='my_checkpoint'+str(epoch+1+last_epoch)+'.pth.tar')
+                save_checkpoint(checkpoint, filename='my_checkpoint'+str(epoch+1)+'.pth.tar')
             # check accuracy
-            acc_item, temp = check_accuracy(valid_loader, model, loss_fn, device=device)
+            print('\nValidating:')
+            acc_item_valid, _ = check_accuracy(valid_loader, model, loss_fn, device=device)
+            print('Testing:')
+            acc_item_test, _ = check_accuracy(test_loader, model, loss_fn, device=device)
             stop = time.time()
-            dictionary['acc'].append(acc_item)
-            dictionary['time taken'].append((stop-start)/60)
-            # saving dictionary to csv file
+            dictionary['acc-valid'].append(acc_item_valid)
+            dictionary['acc-test'].append(acc_item_test)
+            dictionary['time taken'].append((stop-start)/60+last_time)
+            # saving dictionary to a csv file
             if save_model:
-                df = pd.DataFrame(dictionary, columns = ['acc', 'loss', 'time taken'])
+                # changing folder to save dictionary
+                os.chdir(save_results_dir)
+                df = pd.DataFrame(dictionary, columns = ['acc-valid', 'acc-test',
+                                                         'loss', 'time taken'])
                 df.to_csv('dictionary.csv', index = False)
                         
-            print('- Time taken:',round((stop-start)/60,3),'min')
-            print('- Last Learning rate:', round(last_lr[0],8),'\n')
-    
-        plt.subplots()
-        plt.plot(np.asarray(dictionary['acc'])/100, label ='accuracy')
-        plt.plot(np.asarray(dictionary['loss'])/100, label = 'loss')
-        plt.legend()
-        plt.xlabel('Epochs')
-        plt.ylabel('Accuracy and Loss')
-        plt.show()
+            print('\n- Time taken:',round((stop-start)/60+last_time,3),'min')
+            print('\n- Last Learning rate:', round(last_lr[0],8),'\n\n')
+            # deleting variables for freeing space
+            del acc_item_valid, acc_item_test, loss_item, stop
+            try: del checkpoint
+            except: pass
+            
+            # continue image printing
+            if epoch == last_epoch:
+                ax.plot(np.asarray(dictionary['acc-valid']), 'C1', label ='accuracy-validation')
+                ax.plot(np.asarray(dictionary['acc-test']), 'C2', label ='accuracy-test')
+                ax.plot(np.asarray(dictionary['loss']), 'C3', label = 'loss')
+                plt.legend()
+                ax.set_xlabel('Epochs')
+                ax.set_ylabel('Accuracy, Loss, and Dice score')
+                plt.pause(0.5)
+            else:
+                ax.plot(np.asarray(dictionary['acc-valid']), 'C1')
+                ax.plot(np.asarray(dictionary['acc-test']), 'C2')
+                ax.plot(np.asarray(dictionary['loss']), 'C3')
+            plt.show()
+            plt.pause(0.5)
 
 
 if __name__ == '__main__':
@@ -270,7 +326,7 @@ if __name__ == '__main__':
 
 def testing_models():
         
-    model = ResNet50(in_channels=3, num_classes=5).to(device)
+    model = ResNet18(in_channels=3, num_classes=5).to(device)
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     schedule = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)

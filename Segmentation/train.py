@@ -3,7 +3,7 @@
 Program to Train, Save and Continue Training of ANN Models
 
 This program is capable of training and saving models, also continue a training
-from last epoch (use hyperparameter 'last_epoch' and 'continue_train=True', and
+from last epoch (use hyperparameter 'last_epoch' and 'continue_training=True', and
 'load_model=True'), and to save resulting images (when used to images, bur it
 is general porpouse), using 'save_images=True'.
                                                   
@@ -26,7 +26,6 @@ tory by chosing 'test_models' to True.
 ### Program  Header
 
 import torch
-import os
 from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
@@ -47,50 +46,55 @@ if run_on_colabs:
     sys.path.append(root_folder)
 else:
     root_folder = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Segmentation'
-from model import UResNet50
+import os
+os.chdir(root_folder)
+from model import UResNet18
 from utils import *
 
-# Defining the Hyperparameters
+
+#%% Defining Parameters and Path
+
+# defining hyperparameters
 learning_rate = 1e-3    # learning rate
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 batch_size = 4          # batch size
 num_epochs = 85         # number of epochs
 num_workers = 3         # number of workers (smaller or = n° processing units)
-clip_train = 1.00       # percentage to clip the train dataset (for tests)
-clip_valid = 1.00       # percentage to clip the valid dataset (for tests)
+clip_train = 0.50       # percentage to clip the train dataset (for tests)
+clip_valid = 0.50       # percentage to clip the valid dataset (for tests)
 valid_percent = 0.15    # use a percent of train dataset as validation dataset
 test_percent = 0.15     # a percent from training dataset (but do not excluded)
-start_save = 20         # epoch to start saving
+start_save = 2          # epoch to start saving
 image_height = 224      # height to crop the image
 image_width = 224       # width to crop the image
 pin_memory = True
 load_model = False      # 'true' to load a model and test it, or use it
 save_model = True       # 'true' to save model trained after epoches
-continue_train = False  # 'true' to load and continue training a model
+continue_training = False # 'true' to load and continue training a model
 save_images = True      # saving example from predicted and original
-change_last_fc = False  # to change the last fully connected layer
 test_models = False     # true: test all the models saved in 'save_results_dir'
-last_epoch = 0          # when 'continue_train', it is the n° of the last epoch
+last_epoch = 0          # when 'continue_training', it has to be the last epoch
 
-# Defining the path to datasets
+# defining the paths to datasets
 if run_on_colabs:
     train_image_dir = ['/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Basophil',
-                    '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Eosinophil',
-                    '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Lymphocyte',
-                    '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Monocyte',
-                    '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Neutrophil']
+                       '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Eosinophil',
+                       '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Lymphocyte',
+                       '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Monocyte',
+                       '/content/gdrive/SharedDrives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Neutrophil']
 else:
     train_image_dir = ['G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Basophil',
-                    'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Eosinophil',
-                    'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Lymphocyte',
-                    'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Monocyte',
-                    'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Neutrophil']
+                       'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Eosinophil',
+                       'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Lymphocyte',
+                       'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Monocyte',
+                       'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Neutrophil']
 # defining validation diretory
 val_image_dir = None
 
 
-#%% Training function
+#%% Training Function
 
+# defining the training function
 def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr):
     loop = tqdm(loader, desc='Epoch '+str(epoch+1))
     
@@ -99,32 +103,33 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr
         x, y = dictionary[image], dictionary[label]
         x, y = x.to(device=device), y.to(device=device)
         y = y.float()
-
-        # Forward
+        # forward
         with torch.cuda.amp.autocast() if torch.cuda.is_available() else torch.autocast('cpu'):
             pred = model(x)
+            # cropping 'pred' for when the model changes the image dimensions
             y = tf.center_crop(y, pred.shape[2:])
+            # calculating loss
             loss = loss_fn(pred, y)
         
-        # Backward
+        # backward
         optimizer.zero_grad()
         if device == 'cuda':
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scale = scaler.get_scale()
             scaler.update()
+        # if device='cpu', we cannot use 'scaler=torch.cuda.amp.GradScaler()':
         else:
-            # if device='cpu', we cannot use 'scaler=torch.cuda.amp.GradScaler()'
             loss.backward()
             optimizer.step()
-        # deliting loss, prediction, x, and y
+        # freeing space by deliting variables
         loss_item = loss.item()
         del loss, pred, y, x, image, label, dictionary
-        #updating tgdm loop
+        # updating tgdm loop
         loop.set_postfix(loss=loss_item)
     # deliting loader and loop
     del loader, loop
-    #scheduling learning rate
+    # scheduling the learning rate and saving its last value
     if scaler:
         if scale >= scaler.get_scale():
             schedule.step()
@@ -136,23 +141,28 @@ def train_fn(loader, model, optimizer, loss_fn, scaler, schedule, epoch, last_lr
     return loss_item, last_lr
 
 
-#%% Defining 'main()' function
+#%% Defining The main() Function
 
 def main():
-    
-    model = UResNet50(in_channels=3, num_classes=3).to(device)
-    # Use the optimizer BCEWithLogitsLoss for binery classification, without
-    # using logitic functio inside the model (it executs the logistic for you).
-    # If we want to multclass segmentation, we change the 'out_channels' to the
-    # number of classes, and the 'loss_fn' to cross entropy loss (ading a lo-
-    # gistic function inside your model)
+    # defining the model and casting to device
+    model = UResNet18(in_channels=3, num_classes=3).to(device)
+    # if binary classification, use BCEWithLogitsLoss and do not use logistic
+    # function inside the model (this loss has logistic already).
     # loss_fn = nn.BCEWithLogitsLoss()
+    # for multiclass segmentation, use e.g. CrossEntropyLoss, and a logistic
+    # function inside the model (in its output), also changing the number of
+    # classes as desired in the model defined above (e.g. num_classes=3).
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters())#, lr=learning_rate)
+    # pass 'lr=learning_rate' to Adam optim. to consider it, but it ahs its own
+    # way to schedule learning rate, so here it is not considered.
+    optimizer = optim.Adam(model.parameters())
+    # SGD it is more stable, but has a lower accuracy in this segmentation:
     # optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     schedule = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.8)
+    # if schedule is not used, please refer it as 'None'
     # schedule = None
     
+    # loading dataLoaders
     train_loader, test_loader, valid_loader = get_loaders(
         train_image_dir=train_image_dir,
         valid_percent=valid_percent,
@@ -167,21 +177,23 @@ def main():
         clip_train=clip_train
     )
     
+    # if this program is just to load and test a model, next it loads a model
     if load_model:
-        # Loading checkpoint, if 'cpu', we need to pass 'map_location'
+        # loading checkpoint
         os.chdir(root_folder)
         if device == 'cuda':
             load_checkpoint(torch.load('my_checkpoint.pth.tar'), model)
+        # if 'cpu', we need to pass 'map_location'
         else:
             load_checkpoint(torch.load('my_checkpoint.pth.tar',
                                        map_location=torch.device('cpu')), model)
         check_accuracy(valid_loader, model, loss_fn, device=device)
     
-    if not load_model or continue_train:
-        # Changing folder to save dictionary
+    if not load_model or continue_training:
+        # changing folder to save dictionary
         os.chdir(save_results_dir)
-        # If 'continue_train = True', we load the model and continue training
-        if continue_train:
+        # if 'continue_training==True', we load the model and continue training
+        if continue_training:
             print('\n- Continue Training...\n')
             start = time.time()
             if device == 'cuda':
@@ -203,17 +215,13 @@ def main():
                 dictionary['dice score-valid'].append(dice_score_valid)
                 dictionary['dice score-test'].append(dice_score_test)
                 dictionary['time taken'].append(time_item)
-            # Add a last time to continue conting from here
+            # adding a last time to continue conting from here
             last_time = time_item
-            # if change the last fully-connected layer:
-            if change_last_fc == True:
-                print('\n- Change last fully-connected layer')
-                model.fc = nn.Linear(21, 5)
-                model.cuda()
-        elif not continue_train:
+        # if it is the first epoch
+        elif not continue_training:
             print('\n- Start Training...\n')
             start = time.time()
-            # Opening a 'loss' and 'acc' list, to save the data
+            # opening a 'loss' and 'acc' list, to save the data
             dictionary = {'acc-valid':[], 'acc-test':[], 'loss':[], 'dice score-valid':[], 'dice score-test':[], 'time taken':[]}
             acc_item_valid, loss_item, dice_score_valid = check_accuracy(valid_loader, model, loss_fn, device=device, title='Validating')
             acc_item_test, _, dice_score_test = check_accuracy(test_loader, model, loss_fn, device=device, title='Testing')
@@ -223,35 +231,36 @@ def main():
             dictionary['loss'].append(loss_item)
             dictionary['dice score-valid'].append(dice_score_valid)
             dictionary['dice score-test'].append(dice_score_test)
-            # Adding a last_time here, in the case we do not continue a train
+            # we added last_time here to sum it to the 'time taken' in the
+            # dictionary. it is done because if training is continued, we can
+            # sum the actual 'last_time' taken in previous training.
             last_time = (time.time()-start)/60
             dictionary['time taken'].append(last_time)
         
+        # with 'cpu' we can't use 'torch.cuda.amp.GradScaler()'
         if device == 'cuda':
             scaler = torch.cuda.amp.GradScaler()
         else:
-            # with 'cpu' we can't use cuda.amp.GradScaler(), we only use autograd
             scaler = None
-        
         # to use 'last_lr' in 'train_fn', we have to define it first
         last_lr = schedule.get_last_lr()
-        
         # begining image printing
         fig, ax = plt.subplots()
-        
         # Criating a new start time (we have to sum this to 'last_time')
         start = time.time()
         
-        # running epochs for
+        # running epochs
         for epoch in range(last_epoch, num_epochs):
-            
+            # calling training function
             loss_item, last_lr = train_fn(train_loader, model, optimizer,
                                           loss_fn, scaler, schedule, epoch,
                                           last_lr)
-            
+            # appending resulted loss from training
             dictionary['loss'].append(loss_item)
-            # save model
+            # saveing model
             if save_model and epoch >= start_save -1:
+                # changing folder to save dictionary
+                os.chdir(save_results_dir)
                 checkpoint = {
                     'state_dict': model.state_dict(),
                     'optimizer': optimizer.state_dict(),
@@ -268,7 +277,7 @@ def main():
             dictionary['dice score-valid'].append(dice_score_valid)
             dictionary['dice score-test'].append(dice_score_test)
             dictionary['time taken'].append((stop-start)/60+last_time)
-            # print some examples to folder
+            # saving some image examples to specified folder
             if save_images:
                 # criating directory, if it does not exist
                 os.chdir(root_folder)
@@ -278,8 +287,10 @@ def main():
                     valid_loader, model, folder=os.path.join(root_folder,'saved_images'),
                     device=device
                 )
-            # saving dictionary to csv file
+            # saving dictionary to a csv file
             if save_model:
+                # changing folder to save dictionary
+                os.chdir(save_results_dir)
                 df = pd.DataFrame(dictionary, columns = ['acc-valid', 'acc-test',
                                                          'loss', 'dice score-valid',
                                                          'dice score-test', 'time taken'])
@@ -287,12 +298,12 @@ def main():
                         
             print('\n- Time taken:',round((stop-start)/60+last_time,3),'min')
             print('\n- Last Learning rate:', round(last_lr[0],8),'\n\n')
-            # Deliting variables
+            # deleting variables for freeing space
             del dice_score_test, dice_score_valid, acc_item_test, acc_item_valid, loss_item, stop
             try: del checkpoint
             except: pass
             
-            # Continue image printing
+            # continue image printing
             if epoch == last_epoch:
                 ax.plot(np.asarray(dictionary['acc-valid']), 'C1', label ='accuracy-validation')
                 ax.plot(np.asarray(dictionary['acc-test']), 'C2', label ='accuracy-test')
@@ -321,7 +332,7 @@ if __name__ == '__main__':
 
 def testing_models():
         
-    model = UResNet50(in_channels=3, num_classes=3).to(device)
+    model = UResNet18(in_channels=3, num_classes=3).to(device)
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     schedule = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.8)
