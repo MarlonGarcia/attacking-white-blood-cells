@@ -1,22 +1,54 @@
 # -*- coding: utf-8 -*-
 """
-Program to Train, Save and Continue Training of ANN Models
+Algorithm to Train, Save and Continue Training of Segmentation Models
 
-This program is capable of training and saving models, also continue a training
-from last epoch (use hyperparameter 'last_epoch' and 'continue_training=True', and
-'load_model=True'), and to save resulting images (when used to images, bur it
-is general porpouse), using 'save_images=True'.
-                                                  
-This program suports the optional use of a validation dataset, which directory
-has to be passed through 'val_image_dir'. If this variable is 'None', then test
-and validation datasets is splitted from train dataset using 'valid_percent'
-and 'test_percent'. The test dataset is always clipped from the training data-
-set.
+This is a training algorithm for segmentation tasks, that can be used to
+perform five tasks (training, saving, and testing models, but alose continue a
+training and saving image examples comparing prediction and label) in a diverse
+range of models. Next we will see which are the specific models applied using
+these algorithms, but we can adapt them to train a range of other segmenta-
+tion models, with just small changes (for classification models, please refers
+to the algorithms in the folder 'Classification\train.py').
 
-In the case of fully-connected layers in the and, you can chose to change the
-last fully-connected layer, adding one extra, just changing 'change_last_fc' to
-True. It is also possible to test all saved models in the 'root_folder' direc-
-tory by chosing 'test_models' to True.
+This program runs together with the files 'utils.py', 'model.py' and 'dataset.
+py' to perform the training of the UResNet models (from 18 to 152 layers, as
+specified at 'model.py'), which are based in the encoder-decoder architecture,
+from the Raabin Dataset of Nucleus and Cytoplasm Ground Truths (available for
+download at https://raabindata.com/free-data/). To train other models, just
+specify your model at 'model.py', or simply load your model in the variable
+'model' inside this algorithm. To use other datasets, you need to change the
+file 'dataset.py' to load the new dataset as a 'torch.utils.data.Dataset'
+instance (see torch documentation for more information at
+https://pytorch.org/tutorials/beginner/basics/data_tutorial).
+ 
+Standard Training: To train a model from zero (or from the first epoch), just
+define the hyperparameters, as needed, and choose 'continue_training = False',
+and 'last_epoch = 0' (parameter only used for continue a training). In order to
+save your model, change 'save_model' to True, and to save images resultesd from
+the segmentaiton (from the validation dataset), in the folder 'saved_images'
+inside the 'root_folder', change 'save_images' to True. Variables 'test_model'
+and 'load_model' are for other popouses (see options below), and can set to
+False during the first training.
+
+Continue a Training: set 'continue_training = True' in the hyperparameters to
+continue a training, also setting 'last_epoch' with the number of epochs
+already trained (e.g. if you trained 10 epochs, and want to continue, set
+'last_epoch = 10'. Also the name of the pre-trained model has to exactly match
+'my_checkpoint.pth.tar' in the 'root_folder' directory. The variable
+'laod_model' does not need to be 'True' (it is just to test, see below).
+
+Testing models: If you only want to test one or more models, just set
+'test_models = True', and specify the directory where the models to be tested
+are as a string in the variable 'test_models_dir'. If other options are also
+chosen, the test will take place in the and, after the other options finish.
+
+Loading and Testing One Model: if you want to test a model before continue a
+training, or just wants to load and test one model, choose 'load_model = True'.
+This will test the model 'my_checkpoint.pth.tar' stored in the 'root_folder'.
+
+
+Find more on the GitHub Repository:
+https://github.com/MarlonGarcia/attacking-white-blood-cells
 
 
 @author: Marlon Rodrigues Garcia
@@ -364,9 +396,9 @@ def testing_models():
                 load_checkpoint(torch.load(file,
                                            map_location=torch.device('cpu')),
                                            model)
-            print('- Model:', file)
+            print('\n- Model:', file)
             acc, loss = check_accuracy(valid_loader, model, loss_fn, device=device)
-            print('- Acc:',round(acc,3),'; loss:',round(loss,3))
+            print('\n- Acc:',round(acc,3),'; loss:',round(loss,3))
 
 if (__name__ == '__main__') and (test_models == True):
     testing_models()

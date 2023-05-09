@@ -1,38 +1,56 @@
 # -*- coding: utf-8 -*-
 """
-Program to Train, Save and Continue Training of ANN Models
+Algorithm to Train, Save and Continue Training of Classification Models
 
-This program is capable of training and saving models, also continue a training
-from last epoch (use hyperparameter 'last_epoch' and 'continue_training=True',
-and 'load_model=True'), and to save resulting images (when used to images, bur
-it is general porpouse), using 'save_images=True'.
-                                                  
-This program suports the optional use of a validation dataset, which directory
-has to be passed through 'val_image_dir'. If this variable is 'None', then test
-and validation datasets is splitted from train dataset using 'valid_percent'
-and 'test_percent'. The test dataset is always clipped from the training data-
-set.
+This is a training algorithm for classification tasks, that can be used to
+perform five tasks (training, saving, testing, continue training and transfer
+learning) in a diverse range of models. Next we will see which are the specific
+models applied using these algorithms, but we can adapt them to train a range
+of other clasisification models, with just small changes (for segmentation
+models, please refers to the algorithms in the folder 'Segmentation\train.py').
 
-Transfer Learning: In the case fully-connected layers are used, and you are
-using a pre-traiend model, and want to add an extra fully-connected layer for
-transfer learning, you can perform it by changing the 'change_last_fc' variable
-to 'True'.
+This program runs together with the files 'utils.py', 'model.py' and 'dataset.
+py' to perform the training of the ResNet models (from 18 to 152 layers, as
+specified in its original article, He et al. 2015), from the Raabin Dataset of
+Double-labeled Cropped Cells (available at https://raabindata.com/free-data/ 
+for download). To train other models, just specify your model at 'model.py',
+or simply load your model in the variable 'model' inside this algorithm. To use
+other datasets, you need to change 'dataset.py' to load the new dataset as a
+'torch.utils.data.Dataset' instance (see torch documentation for more infor-
+mation at https://pytorch.org/tutorials/beginner/basics/data_tutorial).
+ 
+Standard Training: To train a model from zero (or from the first epoch), just
+define the hyperparameters, as needed, and choose 'continue_training = False',
+and 'last_epoch = 0' (parameter only used for continue a training). In order to
+save your model, change 'save_model' to True. Variables 'test_model' and
+'load_model' are for other popouses (see options below), and can set to False
+during first training.
 
-When just testing model(s), we just change 'laod_model' to 'True', and run the
-program with the variable 'test_models_dir' assigned with the directories where
-the models to be tested are.
+Continue a Training: set 'continue_training = True' in the hyperparameters to
+continue a training, also setting 'last_epoch' with the number of epochs
+already trained (e.g. if you trained 10 epochs, and want to continue, set
+'last_epoch = 10'. Also the name of the pre-trained model has to exactly match
+'my_checkpoint.pth.tar' in the 'root_folder' directory. The variable
+'laod_model' does not need to be 'True' (it is just to test, see below).
 
-When using 'continue_training = True' in the hyperparameters, you will continue
-the training of a model. In order to that, the last epoch has to be stated in
-'last_epoch' variable, and the name of the pre-trained model has to be exactly
-'my_checkpoint.pth.tar'. The variable 'laod_model' does not need to be 'True'.
+Testing models: If you only want to test one or more models, just set
+'test_models = True', and specify the directory where the models to be tested
+are as a string in the variable 'test_models_dir'. If other options are also
+chosen, the test will take place in the and, after the other options finish.
 
-For a normal traning from a non-trained model (from first epoch), we use the
-default values of 'continue_training = False' and 'change_last_fc = False'. In
-this case if 'load_model = True', the models will be tested afther last epoch.
+Loading and Testing One Model: if you want to test a model before continue a
+training, or just wants to load and test one model, choose 'load_model = True'.
+This will test the model 'my_checkpoint.pth.tar' stored in the 'root_folder'.
+
+Transfer Learning: In the case the last layers are fully-connected layers, and
+you want to apply transfer learning (re-train a pre-trained model for fine
+tunning to other tasks), you can add an extra fully-connected layer  in the end
+of your model, and change variable 'change_last_fc' to 'True'.
+
 
 Find more on the GitHub Repository:
 https://github.com/MarlonGarcia/attacking-white-blood-cells
+
 
 @author: Marlon Rodrigues Garcia
 @instit: University of São Paulo
@@ -74,11 +92,11 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 batch_size = 8          # batch size
 num_epochs = 60         # number of epochs
 num_workers = 3         # number of workers
-clip_train = 0.5        # percentage to clip the train dataset (for tests)
-clip_valid = 0.5        # percentage to clip the valid dataset (for tests)
+clip_train = 1.0        # percentage to clip the train dataset (for tests)
+clip_valid = 1.0        # percentage to clip the valid dataset (for tests)
 valid_percent = 0.15    # use a percent. of train dataset as validation dataset
 test_percent = 0.15     # use a percent. of train dataset as test dataset
-start_save = 2          # epoch to start saving
+start_save = 10         # epoch to start saving
 image_height = 300      # height to crop the image
 image_width = 300       # width to crop the image
 pin_memory = True
@@ -357,9 +375,9 @@ def testing_models():
                 load_checkpoint(torch.load(file,
                                            map_location=torch.device('cpu')),
                                            model)
-            print('- Model:', file)
+            print('\n- Model:', file)
             acc, loss = check_accuracy(valid_loader, model, loss_fn, device=device)
-            print('- Acc:',round(acc,3),'; loss:',round(loss,3))
+            print('\n- Acc:',round(acc,3),'; loss:',round(loss,3))
 
 # running testing function if we are in main
 if (__name__ == '__main__') and (test_models == True):

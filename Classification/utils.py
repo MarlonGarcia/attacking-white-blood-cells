@@ -379,7 +379,7 @@ def check_accuracy(loader, model, loss_fn, device='cuda' if torch.cuda.is_availa
             loss_item = loss.item()
             del loss, pred, x, y, label, dictionary
     
-    print(f'\nGot an accuracy of {round(100*num_correct/len(loader.dataset),4)}')
+    print(f'\nGot an accuracy of {round(100*num_correct/len(loader.dataset),4)}\n')
     # model is training when entering this function.
     model.train()
     
