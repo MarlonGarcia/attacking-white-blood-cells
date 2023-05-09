@@ -34,8 +34,9 @@ Continue a Training: set 'continue_training = True' in the hyperparameters to
 continue a training, also setting 'last_epoch' with the number of epochs
 already trained (e.g. if you trained 10 epochs, and want to continue, set
 'last_epoch = 10'. Also the name of the pre-trained model has to exactly match
-'my_checkpoint.pth.tar' in the 'root_folder' directory. The variable
-'laod_model' does not need to be 'True' (it is just to test, see below).
+'my_checkpoint.pth.tar' in the 'root_folder' directory, and the 'csv' file with
+previous results, 'dictionary.csv', also has to be in 'root_folder'. The varia-
+ble 'laod_model' does not need to be 'True' (it is just to test, see below).
 
 Testing models: If you only want to test one or more models, just set
 'test_models = True', and specify the directory where the models to be tested
@@ -122,6 +123,12 @@ else:
                        'G:/Shared drives/Veterinary Microscope/Dataset/Raabin-WBC Data - Nucleus_cytoplasm_Ground truths/GrTh/Original/Neutrophil']
 # defining validation diretory
 val_image_dir = None
+
+# defining where to save results
+if run_on_colabs:
+    save_results_dir = '/content/gdrive/MyDrive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Segmentation'
+else:
+    save_results_dir = 'C:/Users/marlo/My Drive/College/Biophotonics Lab/Research/Programs/Python/Adversarial Attacks/attacking-white-blood-cells/attacking-white-blood-cells/Segmentation'
 
 
 #%% Training Function

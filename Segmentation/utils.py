@@ -393,7 +393,7 @@ def check_accuracy(loader, model, loss_fn, device='cuda' if torch.cuda.is_availa
     
     print('\n'+title+f'Got an accuracy of {round(100*num_correct_item/int(num_pixels),4)}')
     
-    print('\n'+title+f'Dice score: {round(dice_score_item/len_loader,4)}'+'\n')
+    print('\n'+title+f'Dice score: {round(100*dice_score_item/len_loader,4)}'+'\n')
     model.train()
     return 100*num_correct_item/num_pixels, loss_item, 100*dice_score_item/len_loader
 
