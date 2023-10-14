@@ -251,7 +251,7 @@ def main():
                 # De-normalizing tensor to the range of an image
                 temp = norm255(temp)
                 # Saving the image
-                cv2.imwrite('saved_images/Eps'+str(epsilon)+'_y_pert_test_'+str(i)+'.png', temp)
+                cv2.imwrite('saved_images/Eps'+str(epsilon)+'_output_pert_test_'+str(i)+'.png', temp)
         
         # Calculating accuracy and dice-score, and appending them
         acc = 100*num_correct.item()/num_pixels
