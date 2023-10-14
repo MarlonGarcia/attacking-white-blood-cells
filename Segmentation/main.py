@@ -312,7 +312,7 @@ def main():
                 cv2.imwrite('saved_images/Eps'+str(epsilon)+'_y_valid_'+str(i)+'.png', temp)
                 temp = output.permute(0,2,3,1).to('cpu').numpy()[0,:,:,:]
                 temp = norm255(temp)
-                cv2.imwrite('saved_images/Eps'+str(epsilon)+'_y_pert_valid_'+str(i)+'.png', temp)
+                cv2.imwrite('saved_images/Eps'+str(epsilon)+'_output_pert_valid_'+str(i)+'.png', temp)
         
         # Acquiring  statistics
         acc = 100*num_correct.item()/num_pixels
@@ -389,7 +389,7 @@ def main():
             # De-normalizing the values
             temp = norm255(temp)
             # Saving image with OpenCV
-            cv2.imwrite('save_images/Eps'+str(epsilon)+'_y_pert_'+str(i)+'.png', temp)
+            cv2.imwrite('save_images/Eps'+str(epsilon)+'_output_pert_'+str(i)+'.png', temp)
             ## The next steps are to load (imread) and save (imwrite) the ori-
             # ginal and preturbed images
             temp = cv2.imread(save_image_dir[0]+'/'+names[i])
