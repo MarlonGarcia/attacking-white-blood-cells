@@ -241,19 +241,19 @@ class UResNet(nn.Module): # [3, 4, 6, 3]
         
         return mySequential(*layers)
     
-def UResNet18(in_channels=3, num_classes=1000):
+def UResNet18(in_channels=3, num_classes=10):
     return UResNet(block_standard, [2, 2, 2, 2], in_channels, num_classes)
 
-def UResNet34(in_channels=3, num_classes=1000):
+def UResNet34(in_channels=3, num_classes=10):
     return UResNet(block_standard, [3, 4, 6, 3], in_channels, num_classes)
 
 def UResNet50(in_channels=3, num_classes=1000):
     return UResNet(block_bottleneck, [3, 4, 6, 3], in_channels, num_classes)
 
-def UResNet101(in_channels=3, num_classes=1000):
+def UResNet101(in_channels=3, num_classes=10):
     return UResNet(block_bottleneck, [3, 4, 23, 3], in_channels, num_classes)
 
-def UResNet152(in_channels=3, num_classes=1000):
+def UResNet152(in_channels=3, num_classes=10):
     return UResNet(block_bottleneck, [3, 8, 36, 3], in_channels, num_classes)
 
 
